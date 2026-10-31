@@ -77,7 +77,28 @@ const createProjectSchema = z.object({
   vatRateBp: basisPoints.optional(),
 });
 
-const updateProjectSchema = createProjectSchema.partial().extend({
+// Patch schemas spell their fields out with no defaults: `.partial()` keeps an
+// inner `.default()`, so a PATCH carrying one field would silently reset every
+// other field to its default.
+const updateProjectSchema = z.object({
+  name: z.string().trim().min(2, 'Enter a project name').max(160).optional(),
+  clientName: z.string().trim().min(1, 'Enter the client name').max(160).optional(),
+  clientContact: z.string().trim().max(160).optional(),
+  clientEmail: z.string().trim().max(200).optional(),
+  eventType: eventType.optional(),
+  location: z.string().trim().max(200).optional(),
+  eventDate: isoDate.nullish(),
+  productionDays: z.number().int().min(1).max(365).optional(),
+  description: z.string().trim().max(4000).optional(),
+  targetMarginPreset: marginPreset.optional(),
+  targetMarginBp: basisPoints.optional(),
+  priceBase: priceBase.optional(),
+  contingencyBp: basisPoints.optional(),
+  contingencyBase: z.enum(['direct', 'direct_plus_overhead']).optional(),
+  overheadMethod: z.enum(['none', 'fixed', 'percent']).optional(),
+  overheadFixedKobo: kobo.optional(),
+  overheadPercentBp: basisPoints.optional(),
+  vatRateBp: basisPoints.optional(),
   status: projectStatus.optional(),
 });
 
@@ -92,6 +113,19 @@ const costLineSchema = z.object({
   supplier: z.string().trim().max(160).default(''),
   notes: z.string().trim().max(1000).default(''),
   sortOrder: z.number().int().min(0).max(10_000).default(0),
+});
+
+const costLinePatchSchema = z.object({
+  category: category.optional(),
+  kind: lineKind.optional(),
+  description: z.string().trim().min(1, 'Describe the line item').max(300).optional(),
+  quantityMilli: milli.optional(),
+  unitRateKobo: kobo.optional(),
+  daysMilli: milli.optional(),
+  additionalKobo: z.number().int().min(0).max(1_000_000_000_000).optional(),
+  supplier: z.string().trim().max(160).optional(),
+  notes: z.string().trim().max(1000).optional(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
 });
 
 const pricingSchema = z.object({
@@ -120,6 +154,16 @@ const actualSchema = z.object({
   incurredOn: isoDate.nullish(),
   supplier: z.string().trim().max(160).default(''),
   notes: z.string().trim().max(1000).default(''),
+});
+
+const actualPatchSchema = z.object({
+  costLineId: z.string().uuid().nullish(),
+  category: category.optional(),
+  description: z.string().trim().min(1, 'Describe the expense').max(300).optional(),
+  amountKobo: kobo.optional(),
+  incurredOn: isoDate.nullish(),
+  supplier: z.string().trim().max(160).optional(),
+  notes: z.string().trim().max(1000).optional(),
 });
 
 const paymentSchema = z.object({
@@ -436,7 +480,7 @@ projectRoutes.patch('/:id/cost-lines/:lineId', async (c) => {
   const user = c.get('user');
   const project = await requireProject(c.env.DB, c.req.param('id'));
   const lineId = c.req.param('lineId');
-  const input = await readBody(c, costLineSchema.partial());
+  const input = await readBody(c, costLinePatchSchema);
 
   const existing = await c.env.DB.prepare(
     'SELECT id FROM cost_lines WHERE id = ? AND project_id = ?',
@@ -725,7 +769,7 @@ projectRoutes.patch('/:id/actuals/:actualId', async (c) => {
   const user = c.get('user');
   const project = await requireProject(c.env.DB, c.req.param('id'));
   const actualId = c.req.param('actualId');
-  const input = await readBody(c, actualSchema.partial());
+  const input = await readBody(c, actualPatchSchema);
 
   const existing = await c.env.DB.prepare(
     'SELECT * FROM actual_expenses WHERE id = ? AND project_id = ?',
