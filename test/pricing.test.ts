@@ -11,6 +11,7 @@ import {
   marginBand,
   recommendedPriceKobo,
   requiresApproval,
+  summariseCoverage,
   type CostLineFigure,
   type ProjectEvaluationSettings,
 } from '../src/worker/domain/pricing';
@@ -344,5 +345,71 @@ describe('budget vs actual variance (PRD §6)', () => {
     expect(result.profit.netProfitKobo).toBe(naira(67_500));
     expect(result.profit.vatKobo).toBe(naira(37_500));
     expect(result.requiresApproval).toBe(false);
+  });
+});
+
+describe('summariseCoverage', () => {
+  it('reports empty when nothing has been logged', () => {
+    const coverage = summariseCoverage({
+      budgetKobo: naira(400_000),
+      actualKobo: 0,
+      budgetedCategories: ['equipment', 'crew'],
+      loggedCategories: [],
+    });
+
+    expect(coverage.verdict).toBe('empty');
+    expect(coverage.coverageBp).toBe(0);
+    expect(coverage.remainingKobo).toBe(naira(400_000));
+    expect(coverage.unloggedCategories).toEqual(['equipment', 'crew']);
+  });
+
+  it('names the categories still missing when the picture is partial', () => {
+    const coverage = summariseCoverage({
+      budgetKobo: naira(400_000),
+      actualKobo: naira(150_000),
+      budgetedCategories: ['equipment', 'crew', 'logistics'],
+      loggedCategories: ['equipment'],
+    });
+
+    expect(coverage.verdict).toBe('partial');
+    expect(coverage.coverageBp).toBe(3_750);
+    expect(coverage.remainingKobo).toBe(naira(250_000));
+    expect(coverage.unloggedCategories).toEqual(['crew', 'logistics']);
+  });
+
+  it('treats every budgeted category having spend as complete', () => {
+    const coverage = summariseCoverage({
+      budgetKobo: naira(400_000),
+      actualKobo: naira(410_000),
+      budgetedCategories: ['equipment', 'crew'],
+      loggedCategories: ['equipment', 'crew'],
+    });
+
+    expect(coverage.verdict).toBe('complete');
+    expect(coverage.unloggedCategories).toEqual([]);
+  });
+
+  it('never reports a negative remainder when spend is over budget', () => {
+    const coverage = summariseCoverage({
+      budgetKobo: naira(100_000),
+      actualKobo: naira(130_000),
+      budgetedCategories: ['equipment'],
+      loggedCategories: ['equipment'],
+    });
+
+    expect(coverage.coverageBp).toBe(13_000);
+    expect(coverage.remainingKobo).toBe(0);
+  });
+
+  it('ignores logged categories that were never budgeted', () => {
+    const coverage = summariseCoverage({
+      budgetKobo: naira(200_000),
+      actualKobo: naira(20_000),
+      budgetedCategories: ['equipment'],
+      loggedCategories: ['equipment', 'other'],
+    });
+
+    expect(coverage.verdict).toBe('complete');
+    expect(coverage.unloggedCategories).toEqual([]);
   });
 });

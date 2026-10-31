@@ -22,8 +22,10 @@ import type {
 } from '@shared/types';
 import {
   compareBudgetToActual,
+  DIRECT_CATEGORIES,
   evaluateActuals,
   evaluateProject,
+  summariseCoverage,
   type CategoryTotals,
   type CostLineFigure,
   type MarginThresholds,
@@ -342,6 +344,19 @@ export function buildActuals(
   const variance: VarianceRowDto[] = compareBudgetToActual(budget, actualByCategory);
   const varianceTotalKobo = variance.reduce((sum, row) => sum + row.varianceKobo, 0);
 
+  // The comparison is against the direct-cost budget; the contingency allowance is
+  // money held back, not something that gets spent category by category.
+  const budgetDirectKobo = financials.breakdown.directSubtotalKobo;
+  const loggedCategories = DIRECT_CATEGORIES.filter((category) =>
+    actuals.some((row) => row.category === category),
+  );
+  const coverage = summariseCoverage({
+    budgetKobo: budgetDirectKobo,
+    actualKobo: actualDirectCostsKobo,
+    budgetedCategories: DIRECT_CATEGORIES.filter((category) => budget[category] > 0),
+    loggedCategories,
+  });
+
   return {
     actualDirectCostsKobo,
     actualOverheadKobo,
@@ -352,6 +367,12 @@ export function buildActuals(
     actualBand: result.band satisfies MarginBand,
     variance,
     varianceTotalKobo,
+    budgetDirectKobo,
+    coverageBp: coverage.coverageBp,
+    remainingKobo: coverage.remainingKobo,
+    unloggedCategories: coverage.unloggedCategories,
+    verdict: coverage.verdict,
+    profitVsPlanKobo: result.profit.grossProfitKobo - financials.profit.grossProfitKobo,
   };
 }
 

@@ -10,7 +10,7 @@ import {
   type ActualRow,
   type CostLineRow,
 } from '../db/projects';
-import { evaluateActuals } from '../domain/pricing';
+import { DIRECT_CATEGORIES, evaluateActuals } from '../domain/pricing';
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -106,6 +106,8 @@ dashboardRoutes.get('/', async (c) => {
   let actualNetProfitKobo = 0;
   let outstandingBalanceKobo = 0;
   let activeProjects = 0;
+  let actualsLoggedProjects = 0;
+  let actualsPartialProjects = 0;
 
   for (const project of rows) {
     if (project.status === 'cancelled') continue;
@@ -145,6 +147,18 @@ dashboardRoutes.get('/', async (c) => {
 
       actualGrossProfitKobo += actual.profit.grossProfitKobo;
       actualNetProfitKobo += actual.profit.netProfitKobo;
+
+      // Actual profit is only as good as what has been logged, so count how many
+      // projects contribute to it and how many are still missing categories.
+      const budget = financials.breakdown.categoryTotals;
+      const loggedCategories = DIRECT_CATEGORIES.filter((category) =>
+        actualRows.some((row) => row.category === category),
+      );
+      const budgetedCategories = DIRECT_CATEGORIES.filter((category) => budget[category] > 0);
+      actualsLoggedProjects += 1;
+      if (budgetedCategories.some((category) => !loggedCategories.includes(category))) {
+        actualsPartialProjects += 1;
+      }
     }
 
     outstandingBalanceKobo += financials.profit.totalPayableKobo - (paidByProject.get(project.id) ?? 0);
@@ -161,6 +175,8 @@ dashboardRoutes.get('/', async (c) => {
       estimatedNetProfitKobo,
       actualNetProfitKobo,
       outstandingBalanceKobo,
+      actualsLoggedProjects,
+      actualsPartialProjects,
     },
     projects: summaries satisfies ProjectSummaryDto[],
     range,

@@ -192,7 +192,10 @@ export interface VarianceRowDto {
   actualKobo: number;
   varianceKobo: number;
   varianceBp: number;
-  status: 'over' | 'under' | 'on_budget';
+  /** Budget still unspent in this category. Never negative. */
+  remainingKobo: number;
+  /** `not_logged` means the category has a budget but no expense yet. */
+  status: 'over' | 'under' | 'on_budget' | 'not_logged';
 }
 
 export interface FinancialsDto {
@@ -239,6 +242,19 @@ export interface ActualsDto {
   actualBand: MarginBand;
   variance: VarianceRowDto[];
   varianceTotalKobo: number;
+
+  /** Direct-cost budget the logged expenses are measured against (excludes contingency). */
+  budgetDirectKobo: number;
+  /** Share of that budget logged so far, in basis points; above 10,000 means over. */
+  coverageBp: number;
+  /** Budget not yet logged. Never negative. */
+  remainingKobo: number;
+  /** Budgeted categories with no expense yet. */
+  unloggedCategories: CostCategory[];
+  /** Whether the logged expenses are a complete picture of the job's costs. */
+  verdict: 'empty' | 'partial' | 'complete';
+  /** Actual gross profit less planned gross profit. Positive means better than plan. */
+  profitVsPlanKobo: number;
 }
 
 export interface PaymentDto {
@@ -307,6 +323,10 @@ export interface DashboardMetricsDto {
   estimatedNetProfitKobo: number;
   actualNetProfitKobo: number;
   outstandingBalanceKobo: number;
+  /** Projects with at least one expense logged. Actual profit only covers these. */
+  actualsLoggedProjects: number;
+  /** Of those, projects with budgeted categories that still have no expense logged. */
+  actualsPartialProjects: number;
 }
 
 export interface DashboardDto {

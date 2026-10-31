@@ -441,7 +441,7 @@ export function evaluateProject(input: ProjectEvaluationInput): ProjectFinancial
 // Budget vs actual (PRD §6)
 // ---------------------------------------------------------------------------
 
-export type VarianceStatus = 'over' | 'under' | 'on_budget';
+export type VarianceStatus = 'over' | 'under' | 'on_budget' | 'not_logged';
 
 export interface CategoryComparison {
   category: CostCategory;
@@ -450,6 +450,8 @@ export interface CategoryComparison {
   /** Positive means over budget. */
   varianceKobo: number;
   varianceBp: number;
+  /** Budget still unspent. Never negative, so an overspend cannot read as spare cash. */
+  remainingKobo: number;
   status: VarianceStatus;
 }
 
@@ -462,15 +464,71 @@ export function compareBudgetToActual(
     const actualKobo = actual[category] ?? 0;
     const varianceKobo = actualKobo - budgetKobo;
 
+    // A category with a budget and nothing logged yet is unknown, not a saving.
+    const status: VarianceStatus =
+      actualKobo === 0 && budgetKobo > 0
+        ? 'not_logged'
+        : varianceKobo === 0
+          ? 'on_budget'
+          : varianceKobo > 0
+            ? 'over'
+            : 'under';
+
     return {
       category,
       budgetKobo,
       actualKobo,
       varianceKobo,
       varianceBp: budgetKobo === 0 ? 0 : basisPointsOf(varianceKobo, budgetKobo),
-      status: varianceKobo === 0 ? 'on_budget' : varianceKobo > 0 ? 'over' : 'under',
+      remainingKobo: Math.max(0, budgetKobo - actualKobo),
+      status,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// How complete are the actuals?
+//
+// Logged expenses are always a partial picture until someone has entered every
+// category they budgeted for. Profit computed on a partial picture is real, but
+// it flatters the job, so the readout needs to know whether to trust it.
+// ---------------------------------------------------------------------------
+
+export type ActualsVerdict = 'empty' | 'partial' | 'complete';
+
+export interface ActualsCoverage {
+  /** Share of the direct-cost budget that has been logged, in basis points. */
+  coverageBp: number;
+  /** Budget still to be logged. Never negative. */
+  remainingKobo: number;
+  /** Budgeted categories with no expense yet. */
+  unloggedCategories: CostCategory[];
+  verdict: ActualsVerdict;
+}
+
+export function summariseCoverage(input: {
+  budgetKobo: number;
+  actualKobo: number;
+  budgetedCategories: readonly CostCategory[];
+  loggedCategories: readonly CostCategory[];
+}): ActualsCoverage {
+  const unloggedCategories = input.budgetedCategories.filter(
+    (category) => !input.loggedCategories.includes(category),
+  );
+
+  const verdict: ActualsVerdict =
+    input.loggedCategories.length === 0
+      ? 'empty'
+      : unloggedCategories.length === 0
+        ? 'complete'
+        : 'partial';
+
+  return {
+    coverageBp: basisPointsOf(input.actualKobo, input.budgetKobo),
+    remainingKobo: Math.max(0, input.budgetKobo - input.actualKobo),
+    unloggedCategories,
+    verdict,
+  };
 }
 
 /**

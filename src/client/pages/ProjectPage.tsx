@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import type { CostCategory, CostLineDto, ProjectDetailDto, QuotationDto } from '@shared/types';
+import type { CostCategory, CostLineDto, ProjectDetailDto, QuotationDto, VarianceRowDto } from '@shared/types';
 import { PageHeader } from '../components/shell';
 import {
   BandPill,
@@ -898,20 +898,203 @@ function NewQuotationDrawer({
 // Actuals
 // ---------------------------------------------------------------------------
 
+const VARIANCE_STATUS: Record<VarianceRowDto['status'], { className: string }> = {
+  over: { className: 'text-danger' },
+  under: { className: 'text-positive' },
+  on_budget: { className: 'text-muted' },
+  not_logged: { className: 'text-faint' },
+};
+
+/** Reads as a sentence: "A, B and C". */
+function joinNames(names: string[]): string {
+  const shown = names.slice(0, 4);
+  const rest = names.length - shown.length;
+  const list =
+    shown.length <= 1
+      ? (shown[0] ?? '')
+      : shown.length === 2
+        ? `${shown[0]} and ${shown[1]}`
+        : `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}`;
+  return rest > 0 ? `${list} and ${rest} more` : list;
+}
+
 function ActualsTab({ detail, onChange }: { detail: ProjectDetailDto; onChange: (detail: ProjectDetailDto) => void }) {
   const [adding, setAdding] = useState(false);
   const { actuals } = detail;
 
+  // Categories with neither budget nor spend are dead rows — they add nothing to read.
+  const visibleRows = actuals.variance.filter((row) => row.budgetKobo > 0 || row.actualKobo > 0);
+  const budgetedRows = actuals.variance.filter((row) => row.budgetKobo > 0);
+  const loggedRows = budgetedRows.filter((row) => row.status !== 'not_logged');
+  const unloggedCount = budgetedRows.length - loggedRows.length;
+  // An unlogged category still carries its whole budget as positive variance, which
+  // reads like a saving. Comparing only what was logged keeps the figure honest.
+  const loggedVarianceKobo = loggedRows.reduce((sum, row) => sum + row.varianceKobo, 0);
+  const coveragePct = Math.max(0, Math.min(100, Math.round(actuals.coverageBp / 100)));
+  const unloggedNames = actuals.unloggedCategories.map(
+    (category) => CATEGORY_LABELS[category] ?? category,
+  );
+
+  const overBudget = actuals.coverageBp > 10_000;
+  const spentPct = Math.round(actuals.coverageBp / 100);
+
+  const summary = useMemo(() => {
+    if (actuals.budgetDirectKobo <= 0) {
+      return {
+        tone: 'text-muted',
+        surface: 'border-line/70',
+        icon: <Receipt className="size-4" aria-hidden />,
+        title: 'Nothing to compare against',
+        body: 'This job has no cost lines, so there is no budget to measure spend against. The actual figures below are still real.',
+      };
+    }
+
+    const warning = {
+      tone: 'text-warning',
+      surface: 'border-warning/30 bg-warning-soft',
+      icon: <AlertTriangle className="size-4" aria-hidden />,
+    };
+
+    if (actuals.verdict === 'empty') {
+      return {
+        ...warning,
+        title: 'Nothing logged yet',
+        body: `No expenses are recorded, so actual direct cost reads zero and actual profit looks better than the job will really earn. Log what you have spent to replace the estimate with reality${
+          budgetedRows.length > 0
+            ? ` — ${budgetedRows.length} budgeted ${
+                budgetedRows.length === 1 ? 'category has' : 'categories have'
+              } nothing against ${budgetedRows.length === 1 ? 'it' : 'them'} yet`
+            : ''
+        }.`,
+      };
+    }
+
+    if (actuals.verdict === 'partial') {
+      return {
+        ...warning,
+        title: overBudget ? 'Over budget, and the picture is incomplete' : 'Incomplete picture',
+        body: `${money(actuals.actualDirectCostsKobo)} is logged against a ${money(
+          actuals.budgetDirectKobo,
+        )} direct-cost budget — ${spentPct}% of it. ${loggedRows.length} of ${
+          budgetedRows.length
+        } budgeted categories have spend${
+          unloggedNames.length > 0
+            ? `; ${joinNames(unloggedNames)} ${
+                unloggedNames.length === 1 ? 'has' : 'have'
+              } nothing logged yet, so an “under” figure there is unspent budget, not a saving`
+            : ''
+        }. Treat actual profit as provisional.`,
+      };
+    }
+
+    if (overBudget) {
+      return {
+        tone: 'text-danger',
+        surface: 'border-danger/30 bg-danger-soft',
+        icon: <AlertTriangle className="size-4" aria-hidden />,
+        title: 'Complete, and over budget',
+        body: `All ${budgetedRows.length} budgeted ${
+          budgetedRows.length === 1 ? 'category has' : 'categories have'
+        } spend logged. Actual direct cost is ${money(
+          actuals.actualDirectCostsKobo,
+        )} against a ${money(actuals.budgetDirectKobo)} budget — ${Math.round(
+          (actuals.coverageBp - 10_000) / 100,
+        )}% over.`,
+      };
+    }
+
+    return {
+      tone: 'text-positive',
+      surface: 'border-positive/30 bg-positive-soft',
+      icon: <BadgeCheck className="size-4" aria-hidden />,
+      title: 'Full picture',
+      body: `All ${budgetedRows.length} budgeted ${
+        budgetedRows.length === 1 ? 'category has' : 'categories have'
+      } spend logged, so actual profit is measured against what was really spent.`,
+    };
+  }, [
+    actuals.actualDirectCostsKobo,
+    actuals.budgetDirectKobo,
+    actuals.coverageBp,
+    actuals.verdict,
+    budgetedRows.length,
+    loggedRows.length,
+    overBudget,
+    spentPct,
+    unloggedNames,
+  ]);
+
+  const variance = useMemo(() => {
+    if (actuals.verdict === 'empty') {
+      return { label: 'Variance to budget', value: '—', tone: 'text-muted', hint: 'No spend logged' };
+    }
+    if (actuals.verdict === 'partial') {
+      return {
+        label: 'Variance on logged lines',
+        value: money(loggedVarianceKobo),
+        tone: loggedVarianceKobo > 0 ? 'text-danger' : loggedVarianceKobo < 0 ? 'text-positive' : 'text-muted',
+        hint: `${unloggedCount} ${unloggedCount === 1 ? 'category' : 'categories'} not logged`,
+      };
+    }
+    return {
+      label: 'Variance to budget',
+      value: money(actuals.varianceTotalKobo),
+      tone: actuals.varianceTotalKobo > 0 ? 'text-danger' : 'text-positive',
+      hint: actuals.varianceTotalKobo > 0 ? 'Over budget' : 'Under budget',
+    };
+  }, [actuals.verdict, actuals.varianceTotalKobo, loggedVarianceKobo, unloggedCount]);
+
   return (
     <div className="space-y-3">
+      {/* Lead with what the numbers mean. A grid of figures with no verdict is a puzzle. */}
+      <Card className={`border px-3.5 py-3 ${summary.surface}`}>
+        <div className="flex items-start gap-2.5">
+          <span className={`mt-0.5 shrink-0 ${summary.tone}`}>{summary.icon}</span>
+          <div className="min-w-0 flex-1">
+            <p className={`text-[12px] font-semibold ${summary.tone}`}>{summary.title}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">{summary.body}</p>
+
+            {actuals.budgetDirectKobo > 0 && actuals.verdict !== 'empty' ? (
+              <div className="mt-2.5 space-y-1.5">
+                <ProgressBar
+                  value={coveragePct}
+                  tone={
+                    actuals.coverageBp > 10000
+                      ? 'danger'
+                      : actuals.verdict === 'complete'
+                        ? 'positive'
+                        : 'warning'
+                  }
+                />
+                <div className="flex items-baseline justify-between gap-3 text-[10px] text-faint">
+                  <span className="tabular">
+                    {money(actuals.actualDirectCostsKobo)} of {money(actuals.budgetDirectKobo)} budget logged
+                  </span>
+                  <span className="tabular">
+                    {actuals.remainingKobo > 0
+                      ? `${money(actuals.remainingKobo)} still unspent`
+                      : 'Over the direct-cost budget'}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </Card>
+
       <div className="grid gap-2 sm:grid-cols-3">
-        <MiniFigure label="Actual direct costs" value={money(actuals.actualDirectCostsKobo)} />
-        <MiniFigure label="Actual net profit" value={money(actuals.actualNetProfitKobo)} />
         <MiniFigure
-          label="Variance to budget"
-          value={money(actuals.varianceTotalKobo)}
-          tone={actuals.varianceTotalKobo > 0 ? 'text-danger' : 'text-positive'}
+          label="Actual direct costs"
+          value={money(actuals.actualDirectCostsKobo)}
+          hint={actuals.verdict === 'empty' ? 'Nothing logged yet' : undefined}
         />
+        <MiniFigure
+          label="Actual net profit"
+          value={money(actuals.actualNetProfitKobo)}
+          tone={actuals.actualNetProfitKobo < 0 ? 'text-danger' : 'text-ink'}
+          hint={actuals.verdict === 'complete' ? undefined : 'Provisional'}
+        />
+        <MiniFigure label={variance.label} value={variance.value} tone={variance.tone} hint={variance.hint} />
       </div>
 
       <div className="flex items-center justify-between">
@@ -959,8 +1142,15 @@ function ActualsTab({ detail, onChange }: { detail: ProjectDetailDto; onChange: 
         </ul>
       )}
 
-      {actuals.variance.length > 0 ? (
+      {visibleRows.length > 0 ? (
         <Card className="overflow-hidden border-line/70 bg-sunken/40">
+          <div className="border-b border-line/60 px-3 py-2">
+            <p className="text-[10px] leading-relaxed text-faint">
+              Variance is spend minus budget, so a positive figure is over. “Not logged” rows are
+              budget with nothing spent against them yet — that is missing information, not money
+              saved.
+            </p>
+          </div>
           <table className="w-full text-left text-[12px]">
             <thead>
               <tr className="border-b border-line text-[10px] tracking-wide text-faint uppercase">
@@ -971,21 +1161,34 @@ function ActualsTab({ detail, onChange }: { detail: ProjectDetailDto; onChange: 
               </tr>
             </thead>
             <tbody>
-              {actuals.variance.map((row) => (
-                <tr key={row.category} className="border-b border-line/50 last:border-0">
-                  <td className="px-3 py-2 text-muted">{CATEGORY_LABELS[row.category]}</td>
-                  <td className="tabular px-3 py-2 text-right text-muted">{money(row.budgetKobo)}</td>
-                  <td className="tabular px-3 py-2 text-right text-ink">{money(row.actualKobo)}</td>
-                  <td
-                    className={`tabular px-3 py-2 text-right font-medium ${
-                      row.status === 'over' ? 'text-danger' : row.status === 'under' ? 'text-positive' : 'text-muted'
-                    }`}
-                  >
-                    {money(row.varianceKobo)}
-                    <span className="ml-1 text-[10px] text-faint">{signedPercent(row.varianceBp)}</span>
-                  </td>
-                </tr>
-              ))}
+              {visibleRows.map((row) => {
+                const unlogged = row.status === 'not_logged';
+                return (
+                  <tr key={row.category} className="border-b border-line/50 last:border-0">
+                    <td className="px-3 py-2 text-muted">{CATEGORY_LABELS[row.category]}</td>
+                    <td className="tabular px-3 py-2 text-right text-muted">{money(row.budgetKobo)}</td>
+                    <td className={`tabular px-3 py-2 text-right ${unlogged ? 'text-faint' : 'text-ink'}`}>
+                      {unlogged ? '—' : money(row.actualKobo)}
+                    </td>
+                    <td
+                      className={`tabular px-3 py-2 text-right font-medium ${
+                        VARIANCE_STATUS[row.status].className
+                      }`}
+                    >
+                      {unlogged ? (
+                        <span className="text-[10px] font-normal">Not logged</span>
+                      ) : (
+                        <>
+                          {money(row.varianceKobo)}
+                          <span className="ml-1 text-[10px] font-normal text-faint">
+                            {signedPercent(row.varianceBp)}
+                          </span>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </Card>
@@ -1286,11 +1489,22 @@ function PaymentDrawer({
   );
 }
 
-function MiniFigure({ label, value, tone = 'text-ink' }: { label: string; value: string; tone?: string }) {
+function MiniFigure({
+  label,
+  value,
+  tone = 'text-ink',
+  hint,
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+  hint?: string;
+}) {
   return (
     <div className="rounded-xl border border-line/70 bg-sunken/40 px-3 py-2.5">
       <p className="text-[10px] text-faint">{label}</p>
       <p className={`tabular mt-0.5 text-[15px] font-semibold ${tone}`}>{value}</p>
+      {hint ? <p className="mt-0.5 text-[10px] text-faint">{hint}</p> : null}
     </div>
   );
 }

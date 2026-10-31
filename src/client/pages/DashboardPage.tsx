@@ -123,6 +123,13 @@ export function DashboardPage() {
   const net = moneyCompact(metrics?.estimatedNetProfitKobo ?? 0);
   const outstanding = moneyCompact(metrics?.outstandingBalanceKobo ?? 0);
   const actualNet = moneyCompact(metrics?.actualNetProfitKobo ?? 0);
+  // Actual profit is only trustworthy for projects that have expenses logged all the
+  // way through, so say out loud when it is built on a partial picture.
+  const actualsHint = !metrics || metrics.actualsLoggedProjects === 0
+    ? 'No expenses logged yet'
+    : metrics.actualsPartialProjects > 0
+      ? `${metrics.actualsPartialProjects} of ${metrics.actualsLoggedProjects} partly logged`
+      : 'All spend logged';
 
   return (
     <>
@@ -195,7 +202,7 @@ export function DashboardPage() {
         <MiniStat label="Projects" value={String(metrics?.projectCount ?? 0)} hint={`${metrics?.activeProjects ?? 0} active`} />
         <MiniStat label="Completed revenue" value={moneyCompact(metrics?.completedRevenueKobo ?? 0).value} hint="Delivered and paid" />
         <MiniStat label="Estimated net profit" value={net.value} suffix={net.suffix} hint="After overhead and tax" />
-        <MiniStat label="Actual net profit" value={actualNet.value} suffix={actualNet.suffix} hint="From real expenses" />
+        <MiniStat label="Actual net profit" value={actualNet.value} suffix={actualNet.suffix} hint={actualsHint} />
       </div>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
