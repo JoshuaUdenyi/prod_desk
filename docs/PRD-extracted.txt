@@ -1,0 +1,261 @@
+=== PAGE 1 ===
+ProductionDesk — Lean MVP PRD
+Page 1
+ PRODUCTIONDESK
+ Lean MVP — Product Requirements Document
+ Live Streaming Costing, Pricing & Profit Calculator
+Business context: Abuja-based live streaming and broadcast production company; rents equipment and serves
+corporate, entertainment, religious, government and social events.
+ Version: 1.0    Date: 31 October 2026    Currency: Nigerian Naira (■)
+Product principle
+Cost every job before quoting it, track what was actually spent, and know the real profit after delivery.
+
+=== PAGE 2 ===
+ProductionDesk — Lean MVP PRD
+Page 2
+1. Product overview
+Purpose. Build a small, reliable web app that helps the company cost each live-streaming job, set a profitable client
+price, issue a quotation and compare estimated costs with actual expenses after the event.
+Primary outcomes
+ Calculate total project costs from rented equipment, crew, logistics, internet and other expenses.
+ Recommend a selling price using a target gross margin.
+ Show estimated gross profit and estimated operating/net profit separately.
+ Record actual expenses and show the final project result.
+ Generate a client-ready PDF quotation that never exposes internal costs or margins.
+Out of scope for the MVP: inventory management, payroll, full accounting, supplier CRM, client portal, automated tax
+filing, advanced analytics and integrations with accounting platforms.
+2. Users and access
+ Role
+MVP permissions
+Owner / Admin
+Full access; manage settings and margin thresholds; view all financials; approve low-margin prices.
+Project / Finance User
+Create projects, enter budgets and actual expenses, record client payments, generate quotations;
+view project financials as authorised.
+Keep access simple in the MVP: one administrator and a small number of trusted users. Hide financial details from
+users who do not need them.
+3. Core workflow
+1. Create a project and enter client, event and date details.
+2. Add estimated costs by category and line item.
+3. Select a target margin (Budget, Mid-range, Premium or Custom).
+4. Review recommended price, estimated profit and margin; adjust the selling price if needed.
+5. Obtain management approval if the price is below the minimum margin threshold.
+6. Generate and send a PDF quotation.
+7. After the event, enter actual expenses and payments.
+8. Review actual project profitability and retain the project in history.
+4. MVP features
+A. Project setup
+Fields: project name/reference, client name and contact, event type, location, event date, production days, event
+description and project status. Event types include corporate, conference, concert, church, wedding, government,
+product launch, workshop and other.
+B. Cost calculator
+ Cost category
+Examples
+Equipment rental
+Cameras, lenses, tripods, switcher, monitors, encoder, streaming computer, audio equipment,
+lights, power/backup equipment.
+Crew
+Camera operators, streaming engineer, technical director, switcher operator, audio engineer,
+graphics operator, production manager, assistants.
+Logistics
+Transport, fuel, loading/offloading, delivery/collection, accommodation and feeding.
+Internet & streaming
+Primary/backup data, bonded internet, cloud services, streaming software and storage.
+
+=== PAGE 3 ===
+ProductionDesk — Lean MVP PRD
+Page 3
+Cost category
+Examples
+Other production costs
+Graphics, consumables, communication, permits and miscellaneous project expenses.
+Overhead & contingency
+Allocated business overhead and configurable contingency percentage.
+Every category must allow users to add multiple custom line items. Each line item should include description, quantity,
+unit rate, duration where relevant, amount, supplier/payee (optional), estimated/actual status and notes.
+Calculation rules
+ Equipment line total = quantity × rental rate × rental days + additional charges.
+ Crew line total = number of people × rate per person × days + allowances/overtime.
+ Other line items = quantity × unit rate or manually entered amount.
+ Estimated direct cost = sum of all estimated direct project expenses.
+ Contingency = configured percentage × selected eligible cost base. Show the base clearly and avoid
+double-counting.
+
+=== PAGE 4 ===
+ProductionDesk — Lean MVP PRD
+Page 4
+5. Pricing and profit calculations
+The app must label each figure clearly and must not treat VAT as revenue or profit.
+Metric
+Calculation / meaning
+Net project revenue
+Client selling price excluding VAT and other pass-through taxes.
+Gross profit
+Net project revenue − direct project costs.
+Gross margin
+(Gross profit ÷ net project revenue) × 100.
+Operating profit
+Gross profit − allocated operating overhead and other operating expenses.
+Estimated net profit
+Operating profit − configured tax provision and other applicable non-operating costs. Label as an
+estimate, not a filed tax result.
+Target-margin price formula: Recommended selling price (excluding VAT) = estimated cost base ÷ (1 − target gross
+margin). The cost base used for the recommendation must be shown. If overhead is included in that base, label the
+result accordingly.
+Example: If the selected cost base is ■400,000 and target gross margin is 30%, recommended selling price is
+■400,000 ÷ 0.70 = ■571,429 before applicable VAT.
+Default target margins (editable): Budget 20%, Mid-range 30%, Premium 40%, Custom user-entered percentage.
+These are internal starting targets, not market guarantees.
+Margin warnings: below 15% = critical; 15–24.99% = low; 25–34.99% = acceptable; 35–40% = good; above 40% =
+excellent. Admin can change thresholds. Warn when price is below minimum; require an admin approval/override
+reason.
+Important accounting distinction
+The app should not label gross profit as net profit. For this MVP, show gross profit, operating profit and estimated net
+profit as separate measures. Tax treatment depends on the company's legal status and current Nigerian rules; tax
+settings must be configurable and reviewed by a qualified Nigerian tax adviser. Record VAT collected separately, and
+do not assume every withholding-tax deduction is an expense.
+6. Estimated vs actual tracking
+Each project must keep the original estimate and allow actual expenses to be entered after or during production. Show
+budget, actual and variance for each line item/category. Actual gross profit = actual net project revenue − actual direct
+costs. Recalculate operating profit and estimated net profit using actual costs and the applicable overhead/tax
+settings. Preserve the approved quotation and its original prices.
+Expense
+Budget
+Actual
+Variance
+Equipment
+■200,000
+■220,000
+■20,000 over
+Crew
+■100,000
+■95,000
+■5,000 under
+Logistics
+■50,000
+■60,000
+■10,000 over
+7. Simple quotation generator
+Generate a branded PDF with company details/logo, quotation reference, date/validity, client details, project
+description, package/services, itemised client-facing charges, subtotal, applicable VAT shown separately, total
+payable, payment terms and bank/payment details. Support detailed and package-style layouts. Never expose
+supplier rates, internal expenses, overhead, margins or profit.
+8. Dashboard and project history
+
+=== PAGE 5 ===
+ProductionDesk — Lean MVP PRD
+Page 5
+Dashboard cards: project count, active projects, quoted revenue, completed-project revenue, estimated gross profit,
+actual gross profit, estimated/actual net profit and unpaid client balances. Show a simple project list with status and
+profitability. Filters: month, quarter, year and custom date range. Avoid complex charts in the first release.
+9. Essential settings
+Company name/logo/contact and bank details; currency (NGN); default margin targets and warning thresholds; default
+contingency; overhead allocation method (fixed amount per project or percentage); quotation validity; deposit/balance
+terms; VAT/tax settings; and user access.
+
+=== PAGE 6 ===
+ProductionDesk — Lean MVP PRD
+Page 6
+10. UI / UX requirements — Bento design system
+The frontend must use a Bento-style design system. Use a modular grid of clean, rounded cards with clear visual
+hierarchy. Financially important information should be immediately visible without overwhelming the user.
+Design direction:
+ Dashboard built from responsive Bento cards: Revenue, Direct Costs, Gross Profit, Operating Profit, Net Profit and
+Outstanding Balance.
+ A prominent “Create Project” action.
+ Cost calculator organised into clear card sections by expense category.
+ Sticky or persistent project financial summary on desktop; compact summary on mobile.
+ Clear status and margin indicators; do not rely on colour alone.
+ Mobile-first responsive behaviour, accessible contrast, readable numbers and simple forms.
+ Keep data entry fast: add/remove line items inline, sensible defaults and automatic recalculation.
+Mandatory UI reference step: Before implementing the frontend, the developer/AI coding agent must ask the product
+owner to provide a UI reference. Ask for a screenshot, website link, Figma file or app reference whose visual style
+should guide the frontend. Do not invent or finalise the visual direction before the owner responds. If no reference is
+available, propose a small set of Bento-style directions and obtain approval before proceeding.
+11. Cloudflare-first technology stack
+The product owner wants Cloudflare used across the stack. Prefer Cloudflare-native services and avoid adding
+Supabase, Vercel or Firebase unless a clearly justified requirement cannot be met natively.
+Layer
+Preferred Cloudflare service
+Purpose
+Frontend hosting &
+delivery
+Cloudflare Workers with Static Assets (or Cloudflare
+Pages if the chosen framework workflow requires it)
+Host and deliver the web app globally.
+Application backend /
+API
+Cloudflare Workers
+Project, cost, pricing, quotation and reporting
+logic.
+Database
+Cloudflare D1
+Store users, projects, cost lines, quotations,
+payments and settings.
+File storage
+Cloudflare R2
+Store logos, quotation PDFs, receipts and
+attachments.
+Bot protection
+Cloudflare Turnstile
+Protect public-facing forms and authentication
+flows from abuse.
+Secrets/config
+Workers secrets and environment variables
+Protect API keys and sensitive configuration.
+DNS / security / edge
+Cloudflare DNS, SSL/TLS and WAF features as
+appropriate
+Domain, HTTPS and edge security.
+Authentication: Implement secure app-level authentication and role-based permissions compatible with Workers and
+D1 (for example, a maintained authentication library with a supported Cloudflare/D1 adapter). Do not assume
+Cloudflare Access alone is the app's user-management system; validate the chosen authentication approach before
+implementation.
+PDF generation: Generate PDFs in a Workers-compatible way, or use a supported browser/rendering service only if
+needed. Store generated PDFs in R2. Confirm runtime/library compatibility early.
+Cloudflare constraint: “Entire stack on Cloudflare” means hosting, API, database, object storage, DNS/security and
+deployment should be Cloudflare-native. Third-party email delivery or payment services may be added later only if
+required; they are not MVP dependencies.
+12. Non-functional requirements
+
+=== PAGE 7 ===
+ProductionDesk — Lean MVP PRD
+Page 7
+ Secure login and role-based access control.
+ Server-side validation of all financial calculations; never trust browser-only totals.
+ Decimal-safe currency calculations (avoid floating-point rounding errors).
+ Audit trail for price overrides and changes to actual expenses.
+ Automatic backups/export strategy for D1 data.
+ Responsive on mobile, tablet and desktop.
+ Fast project creation and recalculation.
+ Error handling and clear confirmation before deleting records.
+ Existing approved quotations and completed projects must remain historically accurate.
+13. MVP acceptance criteria
+The MVP is ready when a user can:
+1. Sign in securely and access only permitted functions.
+2. Create a project and add multiple expense lines across all core categories.
+3. See total estimated cost update automatically.
+4. Select a target margin and receive a correctly calculated recommended price.
+5. See gross profit and margin, with operating/net profit shown separately when overhead/tax assumptions are
+entered.
+6. Receive a warning and require approval for below-threshold pricing.
+7. Generate a client PDF quotation without internal costs or margins.
+8. Enter actual expenses and see budget-versus-actual variance and updated profitability.
+9. Find previous projects and review their financial results.
+10. Use the app comfortably on a phone and desktop.
+14. Build order
+Build first: UI reference approval → authentication → project creation → cost calculator → pricing/profit engine →
+quotation PDF → actual expense tracking → project history/dashboard → security and backup checks.
+Defer: supplier directory, crew directory, package catalogue, payment reconciliation, tax filing, advanced analytics,
+notifications, inventory and client portal.
+15. Product success measures
+ A standard project budget can be prepared in a few minutes.
+ Every quotation is supported by a saved cost breakdown.
+ Management can see estimated gross margin before approving a quote.
+ Every completed project has actual expenses and an actual profit view.
+ The company can identify projects that exceeded budget or missed target margin.
+Final product principle
+ProductionDesk MVP should do one job exceptionally well: help the company cost every live-streaming production,
+price it responsibly, issue a professional quote and know the real financial result after delivery.
+Prepared for an Abuja-based live streaming and broadcast production business. This PRD defines product requirements, not tax or
+accounting advice.

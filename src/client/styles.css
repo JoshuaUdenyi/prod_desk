@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens read off the Marvilo accounting kit supplied as the UI
+ * reference: near-black canvas, one step lighter for cards, a single violet
+ * accent, and status colours that stay distinguishable without colour alone
+ * (every status also carries an icon or a word, per PRD §10).
+ */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-canvas: #08080a;
+  --color-surface: #0e0e12;
+  --color-raised: #14141a;
+  --color-sunken: #0a0a0d;
+  --color-line: #23232b;
+  --color-line-strong: #2f2f39;
+
+  --color-ink: #f4f4f7;
+  --color-muted: #8b8b96;
+  --color-faint: #5f5f6b;
+
+  --color-accent: #8b5cf6;
+  --color-accent-strong: #7c3aed;
+  --color-accent-soft: #1c1630;
+
+  --color-positive: #34d399;
+  --color-positive-soft: #0f2a22;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #2b2010;
+  --color-danger: #f87171;
+  --color-danger-soft: #2c1517;
+
+  --radius-card: 16px;
+  --radius-panel: 20px;
+  --radius-control: 10px;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* Numbers should line up in every table and stat card. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* Dark scrollbars, so panels do not flash a light gutter. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-[var(--radius-card)] border border-line bg-surface;
+  }
+
+  .field {
+    @apply w-full rounded-[var(--radius-control)] border border-line bg-sunken px-3.5 py-2.5
+           text-sm text-ink placeholder:text-faint
+           transition-colors focus:border-accent focus:outline-none;
+  }
+
+  .field-error {
+    @apply border-danger/70;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "productiondesk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Live streaming costing, pricing and profit calculator for an Abuja broadcast production company",
+  "scripts": {
+    "dev": "run-p dev:api dev:web",
+    "dev:api": "wrangler dev --port 8787",
+    "dev:web": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate:local": "wrangler d1 migrations apply productiondesk --local",
+    "db:migrate:remote": "wrangler d1 migrations apply productiondesk --remote",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.9.10",
+    "lucide-react": "^1.66.0",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.18.5",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261023.1",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
+    "@vitejs/plugin-react": "^5.0.4",
+    "npm-run-all2": "^8.0.4",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.156.0"
+  }
+}
