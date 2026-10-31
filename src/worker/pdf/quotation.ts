@@ -390,7 +390,7 @@ export async function buildQuotationPdf(input: QuotationPdfInput): Promise<Uint8
   });
   y -= 18;
 
-  drawText(page, 'Total payable', totalsLabelX, y, { size: 11, font: bold });
+  drawText(page, 'Total payable   ', totalsLabelX, y, { size: 11, font: bold });
   drawText(page, money(input.totalKobo), columns.amount, y, {
     size: 11,
     font: bold,
