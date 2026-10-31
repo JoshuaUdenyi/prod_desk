@@ -6,3 +6,9 @@ dist/
 .DS_Store
 Thumbs.db
 coverage/
+
+# Local-only tooling state and machine output, not part of the project.
+.claude/
+install.log
+# Quotation PDFs written by the app when you preview one.
+PD-*.pdf
